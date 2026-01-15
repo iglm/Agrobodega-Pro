@@ -9,16 +9,20 @@ import { formatCurrency } from './inventoryService';
  */
 export const syncToGoogleSheets = async (data: AppState, scriptUrl: string): Promise<{ success: boolean, message: string }> => {
   if (!scriptUrl || !scriptUrl.startsWith('https://script.google.com')) {
-    return { success: false, message: 'URL del script inválida. Verifique en Extensiones > Apps Script.' };
+    return { success: false, message: 'URL del script inválida. Verifique en Configuración > Sincronización.' };
   }
 
   // Preparamos los datos aplanados para que sean fáciles de leer en Sheets
+  // Y añadimos 'rawBackup' para que el script cree el archivo JSON en Drive
   const payload = {
     // Info General
     syncDate: new Date().toISOString(),
     farmName: data.warehouses.find(w => w.id === data.activeWarehouseId)?.name || 'Finca',
     
-    // 1. Inventario (Snapshot Actual)
+    // DATA CRUDA PARA RESTAURACIÓN (BACKUP DRIVE)
+    rawBackup: data,
+
+    // 1. Inventario (Snapshot Actual - Para Sheet Visual)
     inventory: data.inventory.map(i => ({
       Producto: i.name,
       Categoria: i.category,
@@ -28,8 +32,8 @@ export const syncToGoogleSheets = async (data: AppState, scriptUrl: string): Pro
       ValorTotal: i.currentQuantity * i.averageCost
     })),
 
-    // 2. Movimientos (Kárdex) - Últimos 100 para no saturar si es masivo
-    movements: data.movements.slice(0, 100).map(m => ({
+    // 2. Movimientos (Kárdex) - Últimos 500 para reporte
+    movements: data.movements.slice(0, 500).map(m => ({
       Fecha: m.date.split('T')[0],
       Tipo: m.type === 'IN' ? 'ENTRADA' : 'SALIDA',
       Item: m.itemName,
@@ -69,7 +73,7 @@ export const syncToGoogleSheets = async (data: AppState, scriptUrl: string): Pro
       body: JSON.stringify(payload)
     });
 
-    return { success: true, message: 'Datos enviados a la nube de Google.' };
+    return { success: true, message: 'Datos enviados a Google Drive y Sheets.' };
   } catch (error) {
     console.error("Error sync sheets:", error);
     return { success: false, message: 'Error de conexión con Google. Verifique internet.' };

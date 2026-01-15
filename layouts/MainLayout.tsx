@@ -339,7 +339,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
       {/* MODALS LAYER */}
       <div className="z-[100] relative">
           {showManual && <ManualModal onClose={() => setShowManual(false)} />}
-          {showData && data && <DataModal fullState={data} onRestoreData={(d) => { setData(d); setShowData(false); }} onClose={() => setShowData(false)} onShowNotification={onShowNotification} onLoadDemoData={() => { actions.loadDemoData(); setShowData(false); }} />}
+          {showData && data && <DataModal fullState={data} onRestoreData={(d) => { setData(d); setShowData(false); }} onClose={() => setShowData(false)} onShowNotification={onShowNotification} />}
           
           {/* Settings Modal (Activated by Button or Tab) */}
           {(showSettings || currentTab === 'masters') && data && (

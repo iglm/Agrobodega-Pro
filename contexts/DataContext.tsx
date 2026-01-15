@@ -39,7 +39,6 @@ interface DataContextType {
   isDataLoaded: boolean;
   isSaving: boolean; // Visual feedback state
   actions: {
-    loadDemoData: () => void;
     deleteCostCenter: (id: string) => void;
     deletePersonnel: (id: string) => void;
     deleteActivity: (id: string) => void;

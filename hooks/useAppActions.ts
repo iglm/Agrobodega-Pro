@@ -2,19 +2,12 @@
 import { Dispatch, SetStateAction, useCallback, useMemo } from 'react';
 import { AppState, InventoryItem, Movement, Unit, PlannedLabor, CostCenter, BudgetPlan, InitialMovementDetails, ContractType } from '../types';
 import { processInventoryMovement, generateId, getBaseUnitType, convertToBase } from '../services/inventoryService';
-import { getDemoData } from '../services/reportService';
 
 export const useAppActions = (
   data: AppState,
   setData: Dispatch<SetStateAction<AppState>>,
   notify: (msg: string, type: 'success' | 'error') => void
 ) => {
-
-  const loadDemoData = useCallback(() => {
-    const demoData = getDemoData();
-    setData(demoData);
-    notify('Datos de demostración cargados exitosamente.', 'success');
-  }, [setData, notify]);
 
   const deleteCostCenter = useCallback((id: string) => {
     // We need the latest data for validation, so we can't remove 'data' dependency 
@@ -171,7 +164,6 @@ export const useAppActions = (
 
   // Memoize the return object so it remains stable if dependencies haven't changed
   return useMemo(() => ({
-    loadDemoData,
     deleteCostCenter,
     deletePersonnel,
     deleteActivity,
@@ -179,5 +171,5 @@ export const useAppActions = (
     addPlannedLabor,
     updateCostCenter,
     saveBudget
-  }), [loadDemoData, deleteCostCenter, deletePersonnel, deleteActivity, saveNewItem, addPlannedLabor, updateCostCenter, saveBudget]);
+  }), [deleteCostCenter, deletePersonnel, deleteActivity, saveNewItem, addPlannedLabor, updateCostCenter, saveBudget]);
 };

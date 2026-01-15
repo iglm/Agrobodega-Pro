@@ -1,16 +1,15 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, LogIn, FileText, CheckCircle2, Gavel, Zap, Lock, Award, Package, Calculator, BarChart3, ShieldAlert, Sparkles, User as UserIcon } from 'lucide-react';
+import { LogIn, FileText, CheckCircle2, Gavel, Zap, Award, Package, Calculator, User as UserIcon } from 'lucide-react';
 import { User as UserType } from '../types';
 import { LegalComplianceModal } from './LegalComplianceModal';
 
 interface LandingProps {
   onEnter: (user: UserType) => void;
   onShowManual: () => void;
-  onLoadDemoData: () => void;
 }
 
-export const Landing: React.FC<LandingProps> = ({ onEnter, onShowManual, onLoadDemoData }) => {
+export const Landing: React.FC<LandingProps> = ({ onEnter, onShowManual }) => {
   const [adminName, setAdminName] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -105,13 +104,6 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, onShowManual, onLoadD
                       className={`w-full py-5 rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 transition-all shadow-2xl active:scale-95 ${ canLogin ? 'bg-emerald-600 text-white shadow-emerald-900/40 hover:bg-emerald-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
                   >
                       {isLoggingIn ? <Zap className="w-6 h-6 animate-pulse" /> : <><LogIn className="w-6 h-6" /> INICIAR ADMINISTRACIÓN</>}
-                  </button>
-
-                  <button 
-                      onClick={onLoadDemoData}
-                      className="w-full py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all active:scale-95"
-                  >
-                      <Sparkles className="w-4 h-4" /> Explorar con Datos de Demostración
                   </button>
               </div>
 
