@@ -3,10 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Sparkles, Send, Mic, Camera, Globe, BrainCircuit, 
   Loader2, Play, Square, Volume2, Search, Link as LinkIcon,
-  Bot, User, MessageSquare, AlertCircle, Zap
+  Bot, User, MessageSquare, AlertCircle, Zap, ShieldAlert,
+  Terminal, Activity
 } from 'lucide-react';
 import { AppState } from '../types';
-import { askGemini, analyzeLeafOrInvoice, decodeBase64, decodeAudioData, encodeBase64 } from '../services/aiService';
+import { askGemini, analyzeSystemHealth, decodeBase64, decodeAudioData, encodeBase64 } from '../services/aiService';
+import { db } from '../services/db';
 import { Button } from './UIElements';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 
@@ -20,6 +22,7 @@ interface ChatMessage {
   text: string;
   isThinking?: boolean;
   grounding?: any[];
+  isDiagnostic?: boolean;
 }
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onClose }) => {
@@ -29,15 +32,43 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onClose }) => {
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(false);
   
+  const [hasHealthAlert, setHasHealthAlert] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [liveStatus, setLiveStatus] = useState('Inactivo');
+  
   const audioContextRef = useRef<AudioContext | null>(null);
   const liveSessionRef = useRef<any>(null);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextStartTimeRef = useRef(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // EFECTO DE DIAGNÓSTICO PROACTIVO AL INICIAR
+  useEffect(() => {
+    const runDiagnostic = async () => {
+        try {
+            // Leemos los últimos 10 logs de auditoría para el guardián digital
+            const recentLogs = await db.auditLogs.orderBy('timestamp').reverse().limit(10).toArray();
+            
+            if (recentLogs.length > 0) {
+                const suggestion = await analyzeSystemHealth(recentLogs);
+                
+                if (suggestion && suggestion !== 'OK') {
+                    setHasHealthAlert(true);
+                    // Inyectamos el diagnóstico como el mensaje inicial si hay alertas
+                    setMessages([{
+                        role: 'model',
+                        text: suggestion,
+                        isDiagnostic: true
+                    }]);
+                }
+            }
+        } catch (err) {
+            console.error("Error en diagnóstico proactivo:", err);
+        }
+    };
+    runDiagnostic();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -63,7 +94,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onClose }) => {
         isThinking: useThinking
       }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'model', text: "Error de conexión. Verifica tu API KEY." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "Error de conexión. Verifica tu conexión a internet o API KEY." }]);
     } finally {
       setLoading(false);
     }
@@ -143,8 +174,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onClose }) => {
                     <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
                 </div>
                 <div>
-                    <h3 className="text-white font-black text-sm uppercase tracking-widest leading-none">Gemini 3.0 Core</h3>
-                    <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest mt-1">Soporte Estratégico Online</p>
+                    <h3 className="text-white font-black text-sm uppercase tracking-widest leading-none">Asistente Proactivo</h3>
+                    <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest mt-1">Soporte Inteligente 24/7</p>
                 </div>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 transition-all">
@@ -181,13 +212,15 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ data, onClose }) => {
             
             {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-down`}>
-                    <div className={`max-w-[90%] p-4 rounded-3xl shadow-lg space-y-3 ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'}`}>
+                    <div className={`max-w-[90%] p-4 rounded-3xl shadow-lg space-y-3 ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : msg.isDiagnostic ? 'bg-red-900/30 text-red-100 border border-red-500/50 rounded-tl-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'}`}>
                         <div className="flex items-center gap-2 mb-1">
-                            {msg.role === 'user' ? <User className="w-3 h-3 opacity-50" /> : <Bot className="w-3 h-3 text-purple-400" />}
-                            <span className="text-[8px] font-black uppercase tracking-widest opacity-50">{msg.role === 'user' ? 'Administrador' : 'Gemini AI'}</span>
-                            {msg.isThinking && <span className="text-[8px] bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 font-black uppercase">Thinking</span>}
+                            {msg.role === 'user' ? <User className="w-3 h-3 opacity-50" /> : msg.isDiagnostic ? <ShieldAlert className="w-3 h-3 text-red-400" /> : <Bot className="w-3 h-3 text-purple-400" />}
+                            <span className="text-[8px] font-black uppercase tracking-widest opacity-50">
+                                {msg.role === 'user' ? 'Administrador' : msg.isDiagnostic ? 'Diagnóstico de Salud' : 'Gemini AI'}
+                                {msg.role === 'model' && !msg.isDiagnostic && hasHealthAlert && <AlertCircle className="w-2 h-2 text-red-500 inline ml-1 animate-pulse" />}
+                            </span>
                         </div>
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
+                        <p className={`text-xs leading-relaxed whitespace-pre-wrap font-medium ${msg.isDiagnostic ? 'italic' : ''}`}>{msg.text}</p>
                         
                         {msg.grounding && msg.grounding.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">

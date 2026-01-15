@@ -12,7 +12,7 @@ import {
     Settings2, Leaf, DollarSign, ClipboardList, Sparkles, 
     Search, Menu, X, Bell, LogOut, ChevronRight, Activity, 
     ShieldCheck, CloudRain, BrainCircuit, Wallet, TrendingUp, Users,
-    CloudOff, CloudFog, CloudLightning, BarChart3
+    CloudOff, CloudFog, CloudLightning, BarChart3, Upload, History
 } from 'lucide-react';
 import { generateId, processInventoryMovement, formatCurrency } from '../services/inventoryService';
 import { 
@@ -32,6 +32,8 @@ import { ManualModal } from '../components/ManualModal';
 import { WarehouseModal } from '../components/WarehouseModal';
 import { SettingsModal } from '../components/SettingsModal';
 import { DataModal } from '../components/DataModal';
+import { ImportModal } from '../components/ImportModal';
+import { TraceabilityDashboard } from '../components/TraceabilityDashboard'; // Nueva Importación
 import { LaborView } from '../components/LaborView'; 
 import { HarvestView } from '../components/HarvestView'; 
 import { BiologicalAssetsView } from '../components/BiologicalAssetsView';
@@ -66,6 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   // UI Modals
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [showWarehouses, setShowWarehouses] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showData, setShowData] = useState(false);
@@ -78,7 +81,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
 
-  // Efecto para revisión de salud financiera al iniciar
   useEffect(() => {
     if (data.activeWarehouseId) {
         const alerts = checkFarmHealth(data);
@@ -96,7 +98,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const activeId = data.activeWarehouseId;
   const currentW = useMemo(() => data.warehouses.find(w => w.id === activeId), [data.warehouses, activeId]);
 
-  // Data Slices
   const activeInventory = useMemo(() => data.inventory.filter(i => i.warehouseId === activeId), [data.inventory, activeId]);
   const activeCostCenters = useMemo(() => data.costCenters.filter(c => c.warehouseId === activeId), [data.costCenters, activeId]);
   const activeLaborLogs = useMemo(() => data.laborLogs.filter(l => l.warehouseId === activeId), [data.laborLogs, activeId]);
@@ -119,6 +120,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
     { id: 'assets', label: 'Activos Bio', icon: Leaf, color: 'text-emerald-400' },
     { type: 'divider', label: 'Gerencia Estratégica' },
     { id: 'analytics', label: 'Análisis Financiero', icon: BarChart3, color: 'text-emerald-600' },
+    { id: 'traceability', label: 'Trazabilidad Hub', icon: History, color: 'text-indigo-400' }, // Nueva Opción
     { id: 'labor', label: 'Nómina y Personal', icon: Pickaxe, color: 'text-orange-500' },
     { id: 'budget', label: 'Presupuestos', icon: Calculator, color: 'text-indigo-500' },
     { id: 'stats', label: 'Inteligencia BI', icon: Activity, color: 'text-rose-500' },
@@ -131,8 +133,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
 
   return (
     <div className={`min-h-screen flex bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans overflow-hidden`}>
-      
-      {/* SIDEBAR PERSISTENTE */}
       <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col z-[100] relative`}>
         <div className="p-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
             <div className="bg-emerald-600 p-2 rounded-xl shadow-lg shadow-emerald-900/20 shrink-0">
@@ -173,16 +173,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
             })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <button 
+                onClick={() => setShowImport(true)}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-blue-500 hover:bg-blue-500/10 transition-all"
+                title="Importar Finca"
+            >
+                <Upload className="w-5 h-5 shrink-0" />
+                {sidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Importar JSON</span>}
+            </button>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-full flex items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-emerald-500 transition-colors">
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
         </div>
       </aside>
 
-      {/* ÁREA PRINCIPAL */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        
         <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between z-50">
             <div className="flex items-center gap-6 flex-1">
                 <div className="max-w-md w-full relative group">
@@ -207,19 +213,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
             </div>
 
             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                   {syncing ? (
-                       <Activity className="w-4 h-4 text-indigo-500 animate-spin" />
-                   ) : isOnline ? (
-                       <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                   ) : (
-                       <CloudOff className="w-4 h-4 text-red-500" />
-                   )}
-                   <span className="text-[9px] font-black uppercase text-slate-500">
-                       {syncing ? 'Sincronizando...' : isOnline ? 'Nube OK' : 'Modo Offline'}
-                   </span>
-                </div>
-
                 <button onClick={toggleTheme} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-500 hover:text-amber-500 transition-all active:scale-95 border border-slate-200 dark:border-slate-700">
                     {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -245,7 +238,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
                                     <TrendingUp className="w-3 h-3" /> Capital Activo
                                 </div>
                             </div>
-                            {/* Repite para otros KPI... */}
                         </div>
 
                         <Dashboard 
@@ -265,7 +257,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
                     </div>
                 )}
 
-                {/* MODULAR VIEWS */}
+                {currentTab === 'traceability' && <TraceabilityDashboard />}
                 {currentTab === 'analytics' && <AnalyticsView />}
                 {currentTab === 'inventory' && <Dashboard data={data} inventory={activeInventory} costCenters={activeCostCenters} movements={activeMovements} onAddMovement={(i, t) => setMovementModal({item: i, type: t})} onDelete={(id) => { const item = data.inventory.find(i => i.id === id); if(item) setDeleteItem(item); }} onViewHistory={(item) => setHistoryItem(item)} onViewGlobalHistory={() => setShowGlobalHistory(true)} isAdmin={true} />}
                 {currentTab === 'lots' && <LotManagementView costCenters={activeCostCenters} laborLogs={activeLaborLogs} movements={activeMovements} harvests={activeHarvests} plannedLabors={data.plannedLabors} onUpdateLot={actions.updateCostCenter} onAddPlannedLabor={actions.addPlannedLabor} activities={activeActivities} onAddCostCenter={(n,b,a,s,pc,ct,ac,age,density, assocAge) => setData(prev=>({...prev, costCenters:[...prev.costCenters,{id:generateId(),warehouseId:activeId,name:n,budget:b,area:a || 0,stage:s,plantCount:pc, cropType:ct || 'Café',associatedCrop:ac, cropAgeMonths: age, associatedCropDensity: density, associatedCropAge: assocAge}]}))} onDeleteCostCenter={actions.deleteCostCenter} />}
@@ -295,13 +287,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
                 </div>
             </div>
         )}
-
       </div>
 
-      {/* MODALS LAYER */}
+      {/* Capa de Modales */}
       <div className="z-[150] relative">
           {showManual && <ManualModal onClose={() => setShowManual(false)} />}
-          {showData && data && <DataModal fullState={data} onRestoreData={(d) => { setData(d); setShowData(false); }} onClose={() => setShowData(false)} onShowNotification={onShowNotification} />}
+          {showData && data && <DataModal fullState={data} onRestoreData={(d) => { actions.importFullState(d); setShowData(false); }} onClose={() => setShowData(false)} onShowNotification={onShowNotification} />}
+          {showImport && <ImportModal onClose={() => setShowImport(false)} />}
           {(showSettings) && data && (
             <SettingsModal 
                 suppliers={activeSuppliers} 

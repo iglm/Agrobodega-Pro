@@ -1,8 +1,9 @@
 
 import { GoogleGenAI, Modality, Type, LiveServerMessage } from "@google/genai";
-import { AppState } from "../types";
+import { AppState, AuditLog } from "../types";
+import { dbService } from "./db";
 
-// Inicialización del cliente según guidelines
+// Inicialización del cliente según las guías oficiales
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
@@ -12,12 +13,45 @@ const getFincaContext = (data: AppState) => {
   return `
     Contexto de la Finca:
     - Lotes totales: ${data.costCenters.length}
-    - Área total: ${data.costCenters.reduce((sum, c) => sum + c.area, 0)} Ha
+    - Área total: ${data.costCenters.reduce((sum, c) => sum + (c.area || 0), 0)} Ha
     - Personal: ${data.personnel.length} personas
     - Valor en Bodega: ${data.inventory.reduce((sum, i) => sum + (i.currentQuantity * i.averageCost), 0)} COP
-    - Eventos en Agenda: ${data.agenda.filter(a => !a.completed).length} pendientes.
-    Usuario actual: ${data.warehouses[0]?.ownerId || 'Administrador'}.
+    - Usuarios: ${data.warehouses[0]?.ownerId || 'Administrador'}.
   `;
+};
+
+/**
+ * Diagnóstico Proactivo de Salud del Sistema (Guardián Digital)
+ * Recibe los logs, los sanitiza y solicita análisis de fiabilidad a Gemini.
+ */
+export const analyzeSystemHealth = async (logs: AuditLog[]) => {
+  if (!logs || logs.length === 0) return 'OK';
+  
+  const ai = getAI();
+  
+  // Sanitización de logs para seguridad (sin IDs sensibles ni datos personales)
+  const sanitizedLogs = logs.map(l => ({
+    accion: l.action,
+    estatus: l.status || 'unknown',
+    detalle: l.details.substring(0, 100),
+    entidad: l.entity,
+    fecha: l.timestamp
+  }));
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Actúa como un ingeniero de fiabilidad de datos. Analiza estos últimos logs de la app Agrobodega Pro e identifica si hay errores de sincronización o patrones de fallo. Si todo está bien, responde 'OK'. Si hay problemas, da una recomendación técnica breve de máximo 15 palabras.
+      
+      Logs a analizar:\n${JSON.stringify(sanitizedLogs)}`,
+    });
+
+    const result = response.text?.trim() || 'OK';
+    return result;
+  } catch (error) {
+    console.warn("Fallo en motor de salud IA:", error);
+    return 'OK';
+  }
 };
 
 /**
@@ -30,6 +64,7 @@ export const askGemini = async (prompt: string, data: AppState, useSearch = fals
   const config: any = {
     systemInstruction: `Eres un consultor experto en agronomía y finanzas agrícolas. 
     Analiza los datos de la finca del usuario y responde de forma estratégica. 
+    Utiliza métricas de rentabilidad y buenas prácticas agrícolas.
     ${context}`,
   };
 
@@ -64,23 +99,6 @@ export const analyzeLeafOrInvoice = async (base64Image: string, mimeType: string
       parts: [
         { inlineData: { data: base64Image, mimeType } },
         { text: prompt || "Analiza esta imagen agrícola (hoja, factura o maquinaria) y describe hallazgos." }
-      ]
-    }
-  });
-  return response.text;
-};
-
-/**
- * Transcripción de Audio
- */
-export const transcribeAudio = async (base64Audio: string) => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: {
-      parts: [
-        { inlineData: { data: base64Audio, mimeType: 'audio/wav' } },
-        { text: "Transcribe exactamente lo que se dice en este audio de campo." }
       ]
     }
   });

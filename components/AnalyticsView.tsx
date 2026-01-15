@@ -1,19 +1,44 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { calculateKPIs } from '../services/analyticsService';
 import { exportToGoogleSheets } from '../services/sheetIntegration';
 import { formatCurrency } from '../services/inventoryService';
-import { TrendingUp, TrendingDown, DollarSign, Coffee, PieChart, FileSpreadsheet, AlertTriangle, Info, ArrowUpRight } from 'lucide-react';
+import { askGemini } from '../services/aiService';
+import { TrendingUp, TrendingDown, DollarSign, Coffee, PieChart, FileSpreadsheet, AlertTriangle, Info, ArrowUpRight, BrainCircuit, Sparkles, Loader2, Calendar } from 'lucide-react';
 import { Card, Button } from './UIElements';
 
 export const AnalyticsView: React.FC = () => {
   const { data } = useData();
   const kpis = calculateKPIs(data);
   
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [prediction, setPrediction] = useState<string | null>(null);
+
   // Referencia de mercado estática ($2.00 USD por lb -> ~ $17,000 COP por Kg CPS aprox)
   const MARKET_PRICE_REFERENCE_KG = 17500; 
   const isOverCost = kpis.costPerKg > MARKET_PRICE_REFERENCE_KG;
+
+  const handleIAForecast = async () => {
+    setIsPredicting(true);
+    setPrediction(null);
+    try {
+        const prompt = `Actúa como un analista de datos agrícolas experto. Basado en los siguientes datos de mi finca:
+        - Lotes: ${data.costCenters.length}
+        - Lotes en Producción: ${data.costCenters.filter(c => c.stage === 'Produccion').length}
+        - Inversión total reciente: ${formatCurrency(kpis.totalExpenses)}
+        - Producción histórica: ${kpis.totalIncomes / 17500} cargas estimadas.
+        
+        Realiza una PREDICCIÓN DE COSECHA y VOLUMEN para los próximos 6 meses. Describe los meses pico, riesgos de sanidad detectados y sugiere ajustes en la fertilización para maximizar el margen bruto. Sé breve y profesional.`;
+        
+        const result = await askGemini(prompt, data, false, true);
+        setPrediction(result.text || "No se pudo generar la predicción.");
+    } catch (error) {
+        setPrediction("Error al conectar con el cerebro de IA. Verifique su API Key.");
+    } finally {
+        setIsPredicting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in">
@@ -64,6 +89,56 @@ export const AnalyticsView: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* MÓDULO DE PREDICCIÓN IA (NUEVO) */}
+      <Card className="bg-slate-900 border-indigo-500/30 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+              <BrainCircuit className="w-40 h-40 text-indigo-400" />
+          </div>
+          <div className="relative z-10 space-y-6">
+              <div className="flex justify-between items-center">
+                  <h4 className="text-indigo-400 font-black text-sm uppercase tracking-[0.2em] flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 animate-pulse" /> Predicción de Cosecha IA
+                  </h4>
+                  <span className="text-[8px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase">Gemini 3.0 Pro</span>
+              </div>
+
+              {!prediction && !isPredicting && (
+                  <div className="text-center py-6 space-y-4">
+                      <p className="text-slate-400 text-xs px-8">Analiza tus ciclos de floración y costos para predecir volúmenes de producción.</p>
+                      <Button 
+                        onClick={handleIAForecast}
+                        variant="secondary" 
+                        size="md" 
+                        icon={BrainCircuit}
+                        className="!rounded-full shadow-indigo-900/40"
+                      >
+                        Generar Predicción Inteligente
+                      </Button>
+                  </div>
+              )}
+
+              {isPredicting && (
+                  <div className="flex flex-col items-center justify-center py-10 gap-4 animate-pulse">
+                      <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                      <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Modelando ciclos productivos...</p>
+                  </div>
+              )}
+
+              {prediction && (
+                  <div className="bg-slate-950/80 p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-in">
+                      <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-[10px] font-black uppercase">Reporte Predictivo Generado</span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed italic whitespace-pre-wrap">
+                          {prediction}
+                      </p>
+                      <button onClick={() => setPrediction(null)} className="text-[9px] text-slate-500 hover:text-indigo-400 font-bold uppercase underline">Nuevo Análisis</button>
+                  </div>
+              )}
+          </div>
+      </Card>
 
       {isOverCost && (
           <div className="bg-red-950/40 border border-red-500/50 p-6 rounded-[2.5rem] flex gap-5 animate-pulse">
