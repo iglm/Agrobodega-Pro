@@ -3,13 +3,15 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSyncService } from '../services/syncService'; // Importar el nuevo servicio
 import { 
     LayoutDashboard, Package, Pickaxe, Target, Sprout, Briefcase, 
     Settings, Globe, ChevronDown, Download, Plus, HelpCircle, 
     CalendarRange, Calculator, Sun, Moon, LayoutGrid, Bug, 
     Settings2, Leaf, DollarSign, ClipboardList, Sparkles, 
     Search, Menu, X, Bell, LogOut, ChevronRight, Activity, 
-    ShieldCheck, CloudRain, BrainCircuit, Wallet, TrendingUp, Users
+    ShieldCheck, CloudRain, BrainCircuit, Wallet, TrendingUp, Users,
+    CloudOff, CloudFog, CloudLightning
 } from 'lucide-react';
 import { generateId, processInventoryMovement, formatCurrency } from '../services/inventoryService';
 import { 
@@ -53,6 +55,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const { session } = useAuth();
   const { theme, toggleTheme } = useTheme();
   
+  // INICIALIZACIÓN DEL SERVICIO DE SINCRONIZACIÓN
+  const { syncing, lastSyncError, isOnline } = useSyncService(data, setData);
+
   const [currentTab, setCurrentTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -187,6 +192,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
             </div>
 
             <div className="flex items-center gap-3">
+                {/* INDICADOR DE SINCRONIZACIÓN CLOUD */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                   {syncing ? (
+                       <Activity className="w-4 h-4 text-indigo-500 animate-spin" />
+                   ) : isOnline ? (
+                       <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                   ) : (
+                       <CloudOff className="w-4 h-4 text-red-500" />
+                   )}
+                   <span className="text-[9px] font-black uppercase text-slate-500">
+                       {syncing ? 'Sincronizando...' : isOnline ? 'Nube OK' : 'Modo Offline'}
+                   </span>
+                </div>
+
                 <button onClick={toggleTheme} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-500 hover:text-amber-500 transition-all active:scale-95 border border-slate-200 dark:border-slate-700">
                     {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -353,7 +372,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
               setData(prev => ({ 
                   ...prev, 
                   inventory: updatedInventory, 
-                  movements: [{ ...mov, id: generateId(), warehouseId: activeId, date: new Date().toISOString(), calculatedCost: movementCost }, ...prev.movements] 
+                  movements: [{ ...mov, id: generateId(), warehouseId: activeId, date: new Date().toISOString(), calculatedCost: movementCost, syncStatus: 'pending_sync' }, ...prev.movements] 
               })); 
               setMovementModal(null);
           }} onCancel={() => setMovementModal(null)} onAddSupplier={(n)=>actions.onAddSupplier(n)} onAddCostCenter={handleAddCostCenterQuick} onAddPersonnel={(n)=>actions.onAddPersonnel({name: n, role:'Trabajador'})} />}
@@ -367,7 +386,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
               personnel={activePersonnel} 
               costCenters={activeCostCenters} 
               activities={activeActivities} 
-              onSave={(log) => { setData(prev => ({ ...prev, laborLogs: [...prev.laborLogs, { ...log, id: generateId(), warehouseId: activeId, paid: false }] })); setShowLaborForm(false); onShowNotification("Jornal registrado.", 'success'); }} 
+              onSave={(log) => { setData(prev => ({ ...prev, laborLogs: [...prev.laborLogs, { ...log, id: generateId(), warehouseId: activeId, paid: false, syncStatus: 'pending_sync' }] })); setShowLaborForm(false); onShowNotification("Jornal registrado.", 'success'); }} 
               onCancel={() => setShowLaborForm(false)} 
               onOpenSettings={() => { setShowLaborForm(false); setShowSettings(true); }} 
               onAddPersonnel={(n)=>actions.onAddPersonnel({name: n, role:'Trabajador'})}

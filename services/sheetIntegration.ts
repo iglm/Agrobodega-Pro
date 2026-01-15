@@ -50,19 +50,24 @@ export const performAutoSync = async (data: AppState): Promise<void> => {
     }
 };
 
+// Fix: Changed parameter type to 'any' to support enriched payloads (like MANUAL_FULL_WITH_ANALYTICS)
 /**
- * Perform manual full synchronization to Google Sheets / Drive.
+ * Perform manual synchronization to Google Sheets / Drive.
+ * Can take raw AppState or a structured payload.
  */
-export const syncToGoogleSheets = async (data: AppState, url: string): Promise<{ success: boolean; message: string }> => {
+export const syncToGoogleSheets = async (data: any, url: string): Promise<{ success: boolean; message: string }> => {
     try {
+        // Fix: Detect if the incoming data is already a wrapped payload or raw AppState
+        const body = data.syncType ? data : {
+            syncType: 'MANUAL_FULL',
+            data: data
+        };
+
         // Since we use no-cors, we can't read the response, but we can detect network errors
         await fetch(url, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify({
-                syncType: 'MANUAL_FULL',
-                data: data
-            })
+            body: JSON.stringify(body)
         });
         return { success: true, message: 'Solicitud de respaldo enviada a la nube.' };
     } catch (e) {

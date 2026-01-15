@@ -8,6 +8,10 @@
   ],
   "android": {
     "vibrate": true,
-    "hardwareAcceleration": true
+    "hardwareAcceleration": true,
+    "permissions": [
+      "INTERNET",
+      "ACCESS_NETWORK_STATE"
+    ]
   }
 }
