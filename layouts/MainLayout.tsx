@@ -1,8 +1,8 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-// Fix: Added missing TrendingUp and Users icon imports from lucide-react
 import { 
     LayoutDashboard, Package, Pickaxe, Target, Sprout, Briefcase, 
     Settings, Globe, ChevronDown, Download, Plus, HelpCircle, 
@@ -302,15 +302,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
         </main>
 
         {/* BARRA DE ESTADO INFERIOR */}
-        <footer className="h-10 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0">
+        <footer className="h-12 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0">
             <div className="flex items-center gap-6">
-                <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Sistema Online</span>
-                <span className="flex items-center gap-2"><ShieldCheck className="w-3 h-3 text-indigo-400" /> Copyright © 2025 Lucas Tabares Franco</span>
+                <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Sistema Seguro</span>
+                <span className="flex items-center gap-2 font-bold"><ShieldCheck className="w-3 h-3 text-indigo-400" /> Copyright © 2025 Lucas Mateo Tabares Franco</span>
             </div>
             <div className="flex items-center gap-4">
+                <span className="text-[8px] opacity-50 hidden md:block">Asesorías Agronómicas & Desarrollo de Software</span>
                 <button onClick={() => setShowManual(true)} className="hover:text-emerald-500 transition-colors">Soporte Técnico</button>
                 <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-                <span>v3.0.2-WEB</span>
+                <span>v3.1.0-WEB</span>
             </div>
         </footer>
 

@@ -100,30 +100,30 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                             <h3 className="text-white font-black text-2xl uppercase italic">Marco Legal y Auditoría</h3>
                         </div>
                         <p className="text-sm text-slate-400 leading-relaxed font-medium">
-                            Este software de inteligencia agrícola es propiedad intelectual protegida de <strong>Lucas Mateo Tabares Franco</strong>. Su diseño BI integra normativas vigentes del sector caficultor colombiano.
+                            Este ecosistema es una herramienta de precisión diseñada por <strong>Lucas Mateo Tabares Franco</strong>, agrónomo y desarrollador de software.
                         </p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
                             <div className="bg-slate-950 p-6 rounded-[2rem] border border-slate-800 space-y-4">
-                                <h4 className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2"><Gavel className="w-5 h-5"/> Normativa Aplicable</h4>
+                                <h4 className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2"><Gavel className="w-5 h-5"/> Autoría Intelectual</h4>
                                 <ul className="space-y-3">
                                     <li className="text-[10px] text-slate-500 font-bold flex items-start gap-3">
                                         <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1 shrink-0"/> 
-                                        <span>Ley 23 de 1982: Protección de Derechos de Autor y Software.</span>
+                                        <span>Copyright © 2025 Lucas Mateo Tabares Franco</span>
                                     </li>
                                     <li className="text-[10px] text-slate-500 font-bold flex items-start gap-3">
                                         <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1 shrink-0"/> 
-                                        <span>Ley 1581 de 2012: Habeas Data y Protección de Datos Locales.</span>
+                                        <span>Contacto: mateotabares7@gmail.com</span>
                                     </li>
                                 </ul>
                             </div>
                             <div className="bg-slate-950 p-6 rounded-[2rem] border border-slate-800 space-y-4">
-                                <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2"><ShieldAlert className="w-5 h-5"/> Seguridad de Datos</h4>
+                                <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2"><ShieldAlert className="w-5 h-5"/> Asesorías & Consultoría</h4>
                                 <p className="text-[10px] text-slate-400 leading-relaxed">
-                                    La arquitectura "Local-First" garantiza que los registros contables y tácticos residan exclusivamente en su dispositivo. El desarrollador no posee acceso remoto a su información financiera.
+                                    Ofrecemos asesorías agronómicas personalizadas, optimización de estructuras de costos y desarrollo de soluciones de software a medida para el agro.
                                 </p>
                                 <div className="p-4 bg-indigo-900/10 rounded-xl border border-indigo-500/20 text-center">
-                                    <span className="text-[9px] text-indigo-400 font-black font-mono">AUTORÍA: LUCAS MATEO TABARES FRANCO</span>
+                                    <span className="text-[9px] text-indigo-400 font-black font-mono">CALIDAD & PRECISIÓN AGRONÓMICA</span>
                                 </div>
                             </div>
                         </div>

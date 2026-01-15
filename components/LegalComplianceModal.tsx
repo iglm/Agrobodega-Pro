@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { X, ShieldCheck, Scale, FileText, Gavel, UserCheck, Lock, Globe, Book, Eye, Download, Info, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 
@@ -56,9 +55,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({ onCl
                             <Lock className="w-5 h-5 text-blue-500" /> Política de Tratamiento de Datos (Leyes 1581 y 2157)
                         </h4>
                         <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 text-xs leading-relaxed space-y-4">
-                            <p><strong>1. Identificación del Responsable:</strong> DatosFinca Viva, operada localmente por el usuario en su dispositivo móvil. No existe una base de datos centralizada de terceros.</p>
+                            <p><strong>1. Identificación del Responsable:</strong> DatosFinca Viva es operada por el usuario final. El desarrollador, Lucas Mateo Tabares Franco, no recolecta, almacena ni procesa datos personales o financieros en servidores externos de su propiedad. La aplicación es de arquitectura "Local-First".</p>
                             <p><strong>2. Finalidad:</strong> Los datos recolectados (Inventarios, Nómina, Ubicación de Lotes) tienen como finalidad exclusiva la gestión administrativa de la unidad productiva y el apoyo a decisiones con analíticas propias de la aplicación.</p>
-                            <p><strong>3. Derechos del Titular:</strong> Usted, como usuario, tiene derecho a conocer, actualizar y rectificar sus datos. Dado que la App es 100% local, el ejercicio de estos derechos se realiza mediante la edición directa en la interfaz o la eliminación del caché de la aplicación.</p>
+                            <p><strong>3. Privacidad Absoluta:</strong> Al no existir un backend centralizado del desarrollador, su información es privada y reside únicamente en su dispositivo y en los servicios de nube que usted decida vincular (Google Drive/Sheets).</p>
                         </div>
                     </section>
                 </div>
@@ -71,9 +70,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({ onCl
                             <Book className="w-5 h-5 text-purple-500" /> Propiedad Intelectual (Ley 23 de 1982)
                         </h4>
                         <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 text-xs leading-relaxed space-y-4">
-                            <p><strong>Titularidad:</strong> DatosFinca Viva es una obra protegida. Lucas Mateo Tabares Franco es el autor y titular exclusivo de los derechos morales y patrimoniales sobre el código fuente, la arquitectura de base de datos y los diseños de interfaz.</p>
-                            <p><strong>Licencia de Uso:</strong> Se concede al usuario una licencia no exclusiva, personal e intransferible para el uso de la herramienta con fines agrícolas. Se prohíbe estrictamente la ingeniería inversa o la creación de obras derivadas.</p>
-                            <p><strong>Protección Tecnológica:</strong> La App incorpora medidas tecnológicas de protección (TPM) para evitar el acceso no autorizado a su lógica de negocio, amparadas por la Ley 1915 de 2018.</p>
+                            <p><strong>Titularidad:</strong> DatosFinca Viva es una obra protegida por las leyes de derecho de autor. Lucas Mateo Tabares Franco es el autor y titular exclusivo de los derechos morales y patrimoniales sobre el código fuente, algoritmos, arquitectura de base de datos y diseños de interfaz.</p>
+                            <p><strong>Restricciones:</strong> Se prohíbe cualquier intento de ingeniería inversa, descompilación o creación de obras derivadas sin autorización expresa del titular.</p>
+                            <p><strong>Copyright Notice:</strong> © 2025 Lucas Mateo Tabares Franco. Todos los derechos reservados.</p>
                         </div>
                     </section>
                 </div>
@@ -86,9 +85,8 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({ onCl
                             <AlertCircle className="w-5 h-5 text-amber-500" /> Términos y Condiciones de Uso
                         </h4>
                         <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 text-xs leading-relaxed space-y-4">
-                            <p><strong>Responsabilidad del Usuario:</strong> DatosFinca Viva es una herramienta de apoyo a la decisión. El usuario es el único responsable de la veracidad de los datos ingresados y de las acciones tomadas basadas en los análisis generados por la aplicación.</p>
-                            <p><strong>Seguridad de Datos:</strong> Al ser una App "Local-First", la pérdida del dispositivo sin un backup previo conlleva la pérdida irrecuperable de la información. El desarrollador no se hace responsable por fallas de hardware del usuario.</p>
-                            <p><strong>Validez de Mensajes de Datos:</strong> El uso continuado de la App constituye una aceptación tácita de que los registros digitales generados tienen la validez de un mensaje de datos, en concordancia con la Ley 527 de 1999.</p>
+                            <p><strong>Responsabilidad del Usuario:</strong> El usuario es el único responsable de la veracidad de los datos ingresados y del respaldo de su información mediante las herramientas de backup provistas.</p>
+                            <p><strong>Limitación de Responsabilidad:</strong> El desarrollador no se hace responsable por pérdidas económicas, fallas en la toma de decisiones agrícolas o pérdida de datos debido a fallas de hardware del usuario o desinstalación accidental de la aplicación.</p>
                         </div>
                     </section>
                 </div>
@@ -101,9 +99,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({ onCl
                             <Scale className="w-5 h-5 text-emerald-500" /> Estatuto del Consumidor (Ley 1480)
                         </h4>
                         <div className="bg-slate-950/50 p-6 rounded-[2rem] border border-slate-800 text-xs leading-relaxed space-y-4">
-                            <p><strong>Derecho al Retracto:</strong> En compras de suscripciones digitales (PRO), el usuario tiene 5 días hábiles para solicitar la devolución de su dinero a través de la plataforma de pagos de Google Play.</p>
-                            <p><strong>Reversión del Pago:</strong> Aplica en casos de fraude o producto no solicitado, según el Artículo 51 de la Ley 1480.</p>
-                            <p><strong>Soporte y Garantía:</strong> DatosFinca Viva garantiza la funcionalidad del software. En caso de errores técnicos, el canal de soporte es: lucas.tabares@gmail.com.</p> {/* Updated support email */}
+                            <p><strong>Soporte Técnico y Consultoría:</strong> Para asesorías agronómicas y soporte sobre el desarrollo de software, el canal oficial es el correo electrónico del autor.</p>
+                            <p><strong>Contacto Oficial:</strong> mateotabares7@gmail.com</p>
+                            <p><strong>Servicios Adicionales:</strong> Desarrollo de software a medida para el sector agroindustrial y consultoría en optimización de costos.</p>
                         </div>
                     </section>
                 </div>
@@ -115,7 +113,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({ onCl
         <div className="p-8 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-emerald-500" />
-                <p className="text-[10px] text-slate-500 font-bold uppercase">Versión del Marco Legal: 2025.1.0-CO</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase">Asesorías Agronómicas & Software • 2025</p>
             </div>
             <button onClick={onClose} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-10 rounded-2xl text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-900/40 transition-all active:scale-95">
                 ACEPTAR Y CONTINUAR
