@@ -1,6 +1,69 @@
 
 import React from 'react';
-import { X, LucideIcon, Info } from 'lucide-react';
+import { X, LucideIcon, Loader2 } from 'lucide-react';
+
+// --- BUTTON COMPONENT ---
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  icon?: LucideIcon;
+  fullWidth?: boolean;
+}
+
+export const Button: React.FC<ButtonProps> = ({ 
+  variant = 'primary', 
+  size = 'md', 
+  isLoading = false, 
+  icon: Icon, 
+  fullWidth = false,
+  className = '',
+  children,
+  ...props 
+}) => {
+  const baseStyles = "font-black rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  
+  const variants = {
+    primary: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20",
+    secondary: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/20",
+    danger: "bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/20",
+    ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500",
+    outline: "border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-500"
+  };
+
+  const sizes = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-3 text-sm",
+    lg: "px-6 py-4 text-base tracking-widest uppercase"
+  };
+
+  return (
+    <button 
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      disabled={isLoading || props.disabled}
+      {...props}
+    >
+      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : Icon && <Icon className="w-4 h-4" />}
+      {children}
+    </button>
+  );
+};
+
+// --- CARD COMPONENT ---
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export const Card: React.FC<CardProps> = ({ children, className = "", onClick }) => (
+  <div 
+    onClick={onClick}
+    className={`bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-xl p-6 ${onClick ? 'cursor-pointer hover:scale-[1.01] transition-transform' : ''} ${className}`}
+  >
+    {children}
+  </div>
+);
 
 // --- MODAL WRAPPER ---
 interface ModalProps {
@@ -96,7 +159,6 @@ export const HeaderCard: React.FC<HeaderCardProps> = ({
       </button>
       {secondaryAction}
     </div>
-    {/* Decorative background icon */}
     <Icon className="absolute -right-4 -bottom-4 w-32 h-32 md:w-40 md:h-40 text-white/5 pointer-events-none" />
   </div>
 );
@@ -113,13 +175,5 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, message, sub
     <Icon className="w-12 h-12 mx-auto text-slate-300 mb-2" />
     <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">{message}</p>
     {submessage && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{submessage}</p>}
-  </div>
-);
-
-// --- INFO ROW FOR CARDS ---
-export const InfoRow: React.FC<{ icon: LucideIcon; text: string; iconColor?: string }> = ({ icon: Icon, text, iconColor = "text-slate-400" }) => (
-  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-    <Icon className={`w-3 h-3 ${iconColor}`} />
-    {text}
   </div>
 );

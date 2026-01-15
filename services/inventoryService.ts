@@ -21,7 +21,8 @@ export const generateId = (): string => {
 export const createAuditLog = (
   userId: string,
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'SYNC' | 'ADJUST',
-  entity: string,
+  // Fix: Changed entity type from string to match AuditLog['entity']
+  entity: 'inventory' | 'labor' | 'finance' | 'lot',
   entityId: string,
   detailsObj: any,
   previousValueObj?: any
@@ -34,7 +35,7 @@ export const createAuditLog = (
     entity,
     entityId,
     details: JSON.stringify(detailsObj),
-    previousValue: previousValueObj ? JSON.stringify(previousValueObj) : undefined
+    previousData: previousValueObj ? JSON.stringify(previousValueObj) : undefined
   };
 };
 

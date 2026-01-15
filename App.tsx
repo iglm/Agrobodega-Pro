@@ -5,6 +5,9 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
+import { InventoryProvider } from './contexts/InventoryContext';
+import { FarmProvider } from './contexts/FarmContext';
+import { FinanceProvider } from './contexts/FinanceContext';
 import { MainLayout } from './layouts/MainLayout';
 
 const AppContent = () => {
@@ -21,7 +24,14 @@ const AppContent = () => {
   }
 
   return (
-    <MainLayout onShowNotification={showNotification} />
+    // Wrap with specialized providers once data is loaded
+    <InventoryProvider>
+      <FarmProvider>
+        <FinanceProvider>
+          <MainLayout onShowNotification={showNotification} />
+        </FinanceProvider>
+      </FarmProvider>
+    </InventoryProvider>
   );
 };
 

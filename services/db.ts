@@ -1,9 +1,10 @@
+
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { AppState } from '../types';
+import { AppState, InventoryItem } from '../types';
 import { loadDataFromLocalStorage, generateId, STORAGE_KEY } from './inventoryService';
 
 const DB_NAME = 'DatosFincaVivaDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented for migration check
 const STORE_NAME = 'appState';
 const KEY = 'root';
 const MIGRATION_FLAG = 'MIGRATION_COMPLETED';
@@ -20,9 +21,19 @@ let dbPromise: Promise<IDBPDatabase<FincaDB>> | null = null;
 const getDB = () => {
   if (!dbPromise) {
     dbPromise = openDB<FincaDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion, newVersion, transaction) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME);
+        }
+
+        // Simple Migration Logic
+        if (oldVersion < 2) {
+           // Example: Add a new field if missing in existing data
+           // This runs when upgrading from version 1 to 2
+           const store = transaction.objectStore(STORE_NAME);
+           // Logic would go here to iterate and update if we stored items individually
+           // Since we store a monolithic 'root' object, migration usually happens on load
+           console.log("DB Upgraded to v2. Schema ready.");
         }
       },
       blocked(currentVersion, blockedVersion, event) {
@@ -40,18 +51,33 @@ const getDB = () => {
   return dbPromise;
 };
 
-// Generador de estado limpio seguro para casos de corrupción/zombie
+// Data Migration Function to ensure new fields exist
+const migrateData = (data: AppState): AppState => {
+    // Ensure auditLogs exists
+    if (!data.auditLogs) data.auditLogs = [];
+    // Ensure clients exists
+    if (!data.clients) data.clients = [];
+    
+    // Ensure all items have syncStatus
+    data.inventory = data.inventory.map(i => ({ ...i, syncStatus: i.syncStatus || 'pending_sync' }));
+    data.movements = data.movements.map(m => ({ ...m, syncStatus: m.syncStatus || 'pending_sync' }));
+    data.laborLogs = data.laborLogs.map(l => ({ ...l, syncStatus: l.syncStatus || 'pending_sync' }));
+    
+    return data;
+};
+
 const getCleanState = (): AppState => {
     const id = generateId();
     return {
-        warehouses: [{ id, name: 'Finca Recuperada', created: new Date().toISOString(), ownerId: 'local_user' }],
+        // Fix: Added missing warehouseId property to initial warehouse
+        warehouses: [{ id, warehouseId: id, name: 'Finca Recuperada', created: new Date().toISOString(), ownerId: 'local_user' }],
         activeWarehouseId: id,
         inventory: [], movements: [], suppliers: [], costCenters: [], personnel: [], activities: [], 
         laborLogs: [], harvests: [], machines: [], maintenanceLogs: [], rainLogs: [], financeLogs: [], 
         soilAnalyses: [], ppeLogs: [], wasteLogs: [], agenda: [], phenologyLogs: [], pestLogs: [], 
         plannedLabors: [], budgets: [], assets: [], bpaChecklist: {}, laborFactor: 1.0,
         clients: [], salesContracts: [], sales: [],
-        auditLogs: [] // Adding this
+        auditLogs: []
     };
 };
 
@@ -60,11 +86,11 @@ export const dbService = {
   saveState: async (state: AppState): Promise<void> => {
     try {
       const db = await getDB();
-      await db.put(STORE_NAME, state, KEY);
+      // Ensure data is valid before saving
+      const migratedState = migrateData(state);
+      await db.put(STORE_NAME, migratedState, KEY);
     } catch (error) {
       console.error("Error crítico guardando en IDB:", error);
-      // Fallback: Solo guardamos en LS si NO hemos migrado completamente o como último recurso de emergencia
-      // usando la MISMA clave que el loader para evitar inconsistencia.
       try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch (lsError) {
@@ -74,72 +100,46 @@ export const dbService = {
   },
 
   loadState: async (): Promise<AppState> => {
-    // 1. Verificación de Integridad
     const hasMigrated = localStorage.getItem(MIGRATION_FLAG) === 'true';
     let db;
 
     try {
       db = await getDB();
-      const data = await db.get(STORE_NAME, KEY);
+      let data = await db.get(STORE_NAME, KEY);
 
       if (data) {
-        // Integridad confirmada: IDB tiene datos. Aseguramos la marca.
         if (!hasMigrated) localStorage.setItem(MIGRATION_FLAG, 'true');
-        return data;
+        return migrateData(data);
       }
     } catch (error) {
       console.error("Error crítico leyendo IndexedDB:", error);
-      // SEGURIDAD DE DATOS: Si hubo un error de lectura (ej: cuota excedida o bloqueo),
-      // lanzamos error para que la UI lo maneje, a menos que intentemos rescate abajo.
-      if (hasMigrated) {
-          // Intentamos continuar para ver si el fallback de emergencia funciona
-          console.warn("Intentando recuperación de emergencia tras fallo de lectura IDB...");
-      }
     }
 
-    // 2. Lógica Anti-Zombie y Recuperación de Emergencia
-    // Si llegamos aquí, data es undefined (DB vacía) O falló la lectura.
     if (hasMigrated) {
-        console.warn("ALERTA DE INTEGRIDAD: IndexedDB vacío o inaccesible pero migración marcada.");
-
-        // A) Intentar rescate desde LocalStorage (Última línea de defensa)
         const rawLegacyData = localStorage.getItem(STORAGE_KEY);
-        
         if (rawLegacyData) {
-            console.warn("RECUPERACIÓN DE EMERGENCIA EXITOSA: Datos encontrados en LocalStorage. Re-hidratando base de datos...");
             try {
-                const recoveredState = loadDataFromLocalStorage();
-                
-                // Re-hidratar IDB para corregir la inconsistencia futura
+                const recoveredState = migrateData(loadDataFromLocalStorage());
                 if (db) {
                     await db.put(STORE_NAME, recoveredState, KEY);
-                    console.log("✅ Base de datos re-sincronizada correctamente.");
                 }
-                
                 return recoveredState;
             } catch (recoveryError) {
                 console.error("Fallo al procesar datos de recuperación:", recoveryError);
             }
         }
-
-        // B) Pérdida Total confirmada: Ni IDB ni LocalStorage tienen datos válidos.
-        console.error("PÉRDIDA DE DATOS: Se procede a iniciar estado limpio.");
         return getCleanState();
     }
 
-    // 3. Puente de Migración (Solo corre si nunca se ha migrado)
-    console.log("⚠️ Inicializando migración a IndexedDB...");
     try {
-        const legacyData = loadDataFromLocalStorage();
+        const legacyData = migrateData(loadDataFromLocalStorage());
         if (db) {
             await db.put(STORE_NAME, legacyData, KEY);
             localStorage.setItem(MIGRATION_FLAG, 'true');
-            console.log("✅ Migración completada exitosamente.");
         }
         return legacyData;
     } catch (migrationError) {
-        console.error("Fallo en migración:", migrationError);
-        return loadDataFromLocalStorage(); // Último recurso
+        return loadDataFromLocalStorage();
     }
   },
 
@@ -147,7 +147,7 @@ export const dbService = {
       try {
         const db = await getDB();
         await db.clear(STORE_NAME);
-        localStorage.removeItem(MIGRATION_FLAG); // Permitir nueva migración si se borra explícitamente
+        localStorage.removeItem(MIGRATION_FLAG);
       } catch (e) {
           console.error("Error clearing DB", e);
       }
