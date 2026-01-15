@@ -1,133 +1,106 @@
 
-// Fix: Added missing React import to resolve errors with React types and hooks
-import React from 'react';
-import { AppState, BaseEntity, SyncStatus } from '../types';
-import { dbService } from './db';
+import { db, SyncStatus } from './db';
 
-const API_BASE_URL = 'https://api.datosfincaviva.com/v1'; // URL Imaginaria de tu backend
-const SYNC_DEBOUNCE_MS = 5000; // Esperar 5 segundos de inactividad para sincronizar
+const API_BASE_URL = 'https://api.datosfincaviva.com/v1'; // Cambiar por tu endpoint real de producción
+const MAX_RETRIES = 5;
+const INITIAL_BACKOFF = 1000; // 1 segundo
 
-interface SyncResult {
+interface SyncResponse {
+  serverId: string;
   success: boolean;
-  error?: string;
-  syncedIds: string[];
 }
 
 /**
- * Identifica qué colecciones necesitan sincronización
+ * Servicio maestro de sincronización para AgroBodega Pro
  */
-const getPendingItems = (data: AppState) => {
-  const collections: (keyof AppState)[] = ['inventory', 'movements', 'laborLogs', 'harvests', 'costCenters'];
-  const pending: { collection: string; items: any[] }[] = [];
+export const syncService = {
+  
+  /**
+   * Recorre todas las tablas buscando cambios pendientes y los sube a la nube.
+   */
+  async syncWithCloud(): Promise<void> {
+    const tableNames = ['inventory', 'lots', 'labor', 'finance', 'sanitary'] as const;
+    
+    for (const tableName of tableNames) {
+      const table = db[tableName];
+      // Buscamos lo que no esté en estado 'synced'
+      const pendingItems = await (table as any)
+        .where('syncStatus')
+        .anyOf('pending_create', 'pending_update')
+        .toArray();
 
-  collections.forEach(key => {
-    const items = (data[key] as any[] || []).filter(
-      (item: BaseEntity) => item.syncStatus === 'pending_sync'
-    );
-    if (items.length > 0) {
-      pending.push({ collection: key, items });
+      for (const item of pendingItems) {
+        await this.syncRecord(tableName, item);
+      }
     }
-  });
+  },
 
-  return pending;
-};
+  /**
+   * Procesa un registro individual con lógica de reintento.
+   */
+  async syncRecord(tableName: string, item: any): Promise<void> {
+    let attempt = 0;
+    let success = false;
 
-/**
- * Lógica de envío a API REST
- */
-const pushCollectionToCloud = async (collection: string, items: any[]): Promise<string[]> => {
-  if (!navigator.onLine) throw new Error('Offline');
+    while (attempt < MAX_RETRIES && !success) {
+      try {
+        const isNew = item.syncStatus === 'pending_create';
+        const url = isNew ? `${API_BASE_URL}/${tableName}` : `${API_BASE_URL}/${tableName}/${item.serverId}`;
+        const method = isNew ? 'POST' : 'PUT';
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/${collection}/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('AUTH_TOKEN') || 'local_user_token'}`
-      },
-      body: JSON.stringify({
-        items,
-        clientTimestamp: new Date().toISOString(),
-        strategy: 'LWW' // Last Write Wins
-      })
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('AUTH_TOKEN')}` // Opcional: token de usuario
+          },
+          body: JSON.stringify(item)
+        });
+
+        if (response.ok) {
+          const data: SyncResponse = await response.json();
+          
+          // ACTUALIZACIÓN LOCAL: Marcamos como sincronizado
+          await (db as any)[tableName].update(item.id, {
+            serverId: data.serverId,
+            syncStatus: 'synced'
+          });
+          
+          success = true;
+          console.log(`[Sync] Registro ${item.id} sincronizado con éxito.`);
+        } else {
+          // Errores de servidor (4xx, 500) - No reintentar inmediatamente, esperar backoff
+          throw new Error(`Server error: ${response.status}`);
+        }
+      } catch (error) {
+        attempt++;
+        if (attempt >= MAX_RETRIES) {
+          console.error(`[Sync] Fallo crítico en ${tableName}/${item.id} tras ${MAX_RETRIES} intentos.`, error);
+          break;
+        }
+
+        // Exponential Backoff calculation: 1s, 2s, 4s, 8s...
+        const delay = INITIAL_BACKOFF * Math.pow(2, attempt - 1);
+        console.warn(`[Sync] Intento ${attempt} fallido para ${item.id}. Reintentando en ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  },
+
+  /**
+   * Monitor de conectividad: Dispara sync cuando el equipo vuelve a estar online.
+   */
+  initAutoSync() {
+    window.addEventListener('online', () => {
+      console.log("[Sync] Conexión restaurada. Iniciando sincronización de fondo...");
+      this.syncWithCloud();
     });
 
-    if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-    
-    const result = await response.json();
-    return result.acceptedIds || items.map(i => i.id);
-  } catch (error) {
-    console.error(`Error sincronizando ${collection}:`, error);
-    return [];
+    // También intentamos sincronizar cada 5 minutos si hay red
+    setInterval(() => {
+      if (navigator.onLine) {
+        this.syncWithCloud();
+      }
+    }, 5 * 60 * 1000);
   }
-};
-
-/**
- * Hook Principal para ser usado en App.tsx o MainLayout.tsx
- */
-// Fix: Use React namespace for type definitions in function parameters
-export const useSyncService = (data: AppState, setData: React.Dispatch<React.SetStateAction<AppState>>) => {
-  // Fix: Use React namespace for hook initialization
-  const [syncing, setSyncing] = React.useState(false);
-  const [lastSyncError, setLastSyncError] = React.useState<string | null>(null);
-
-  // Fix: Use React namespace for useCallback hook
-  const performSync = React.useCallback(async () => {
-    const pendingData = getPendingItems(data);
-    if (pendingData.length === 0 || !navigator.onLine) return;
-
-    setSyncing(true);
-    setLastSyncError(null);
-
-    try {
-      const updatedState = { ...data };
-      let anyChange = false;
-
-      for (const group of pendingData) {
-        const syncedIds = await pushCollectionToCloud(group.collection, group.items);
-        
-        if (syncedIds.length > 0) {
-          anyChange = true;
-          // Actualizar estado local a 'synced'
-          (updatedState[group.collection as keyof AppState] as any) = (updatedState[group.collection as keyof AppState] as any).map(
-            (item: BaseEntity) => syncedIds.includes(item.id) 
-              ? { ...item, syncStatus: 'synced' as SyncStatus } 
-              : item
-          );
-        }
-      }
-
-      if (anyChange) {
-        setData(updatedState);
-        await dbService.saveState(updatedState);
-      }
-    } catch (err: any) {
-      setLastSyncError(err.message);
-    } finally {
-      setSyncing(false);
-    }
-  }, [data, setData]);
-
-  // Efecto 1: Disparar sincronización por cambios en datos (Debounced)
-  // Fix: Use React namespace for useEffect hook
-  React.useEffect(() => {
-    const pending = getPendingItems(data);
-    if (pending.length === 0) return;
-
-    const timer = setTimeout(() => {
-      performSync();
-    }, SYNC_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [data, performSync]);
-
-  // Efecto 2: Escuchar reconexión a internet
-  // Fix: Use React namespace for useEffect hook
-  React.useEffect(() => {
-    const handleOnline = () => performSync();
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [performSync]);
-
-  return { syncing, lastSyncError, isOnline: navigator.onLine };
 };

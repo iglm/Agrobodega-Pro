@@ -3,7 +3,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useSyncService } from '../services/syncService'; // Importar el nuevo servicio
+// Fix: useSyncService was not exported from syncService.ts. 
+// Changed to import useSyncManager from syncManager.ts which has matching functionality.
+import { useSyncManager } from '../services/syncManager'; 
 import { 
     LayoutDashboard, Package, Pickaxe, Target, Sprout, Briefcase, 
     Settings, Globe, ChevronDown, Download, Plus, HelpCircle, 
@@ -56,7 +58,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const { theme, toggleTheme } = useTheme();
   
   // INICIALIZACIÓN DEL SERVICIO DE SINCRONIZACIÓN
-  const { syncing, lastSyncError, isOnline } = useSyncService(data, setData);
+  // Fix: Renamed destructured properties to match keys returned by useSyncManager hook.
+  const { isSyncing: syncing, lastError: lastSyncError, online: isOnline } = useSyncManager(data, setData);
 
   const [currentTab, setCurrentTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
