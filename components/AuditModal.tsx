@@ -49,11 +49,10 @@ export const AuditModal: React.FC<AuditModalProps> = ({ inventory, onAdjust, onC
 
     // 2. Generate Audit Log (Local override for direct DB access)
     // Note: onAdjust usually creates a movement, but we want to log the "AUDIT EVENT" specifically here
-    // Fix: Changed entity type from 'InventoryItem' to 'inventory' to match AuditLog['entity']
     const auditLog = createAuditLog(
         'local_user', 
         'ADJUST', 
-        'inventory', 
+        'InventoryItem', 
         selectedItem.id, 
         { 
             oldQty: selectedItem.currentQuantity, 
