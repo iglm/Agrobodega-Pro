@@ -207,7 +207,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 pb-40">
+      <main className="max-w-4xl mx-auto p-4 pb-40 pt-[192px] sm:pt-[160px]"> {/* Adjusted padding-top */}
         <ViewRouter 
             currentTab={currentTab}
             data={data}
