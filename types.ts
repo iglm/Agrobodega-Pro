@@ -157,14 +157,12 @@ export interface AuditLog {
   id: string;
   timestamp: string;
   userId: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'SYNC' | 'ADJUST' | 'IMPORT' | 'EXPORT';
-  entity: 'inventory' | 'labor' | 'finance' | 'lot' | 'system';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'SYNC' | 'ADJUST';
+  entity: 'inventory' | 'labor' | 'finance' | 'lot';
   entityId: string;
   previousData?: string;
   newData?: string;
   details: string;
-  status?: 'success' | 'failure';
-  metadata?: Record<string, any>;
 }
 
 export interface Warehouse extends BaseEntity { 
@@ -201,7 +199,7 @@ export interface InventoryItem extends BaseEntity {
   averageCost: number; 
   lastPurchasePrice: number;
   lastPurchaseUnit: Unit;
-  minStock?: number; 
+  minStock?: number; // Requerido por el usuario
   minStockUnit?: Unit;
   image?: string;
   description?: string;

@@ -2,19 +2,10 @@
   "name": "AgroBodega Pro ",
   "description": "Software de Inteligencia de Insumos y Gestión de Libertad Financiera. Desarrollado por Lucas Mateo Tabares Franco.",
   "requestFramePermissions": [
-    "camera",
-    "microphone",
-    "geolocation"
+    "camera"
   ],
   "android": {
     "vibrate": true,
-    "hardwareAcceleration": true,
-    "permissions": [
-      "INTERNET",
-      "ACCESS_NETWORK_STATE",
-      "POST_NOTIFICATIONS",
-      "READ_EXTERNAL_STORAGE",
-      "WRITE_EXTERNAL_STORAGE"
-    ]
+    "hardwareAcceleration": true
   }
 }

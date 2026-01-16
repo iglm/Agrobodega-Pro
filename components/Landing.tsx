@@ -24,7 +24,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, onShowManual }) => {
       onEnter({
         id: 'local_user',
         name: adminName.trim(),
-        email: 'mateotabares7@gmail.com',
+        email: 'gestor@agrobodega.com',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AgroPro'
       });
     }, 1000);
@@ -51,7 +51,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, onShowManual }) => {
           </p>
           <div className="bg-slate-900/50 border border-slate-800 px-4 py-1.5 rounded-full inline-flex items-center gap-2 mb-12 animate-slide-up">
               <Award className="w-3 h-3 text-emerald-500" />
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">Desarrollo & Asesoría Agronómica por {AUTHOR}</span>
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">Herramienta Privada de {AUTHOR}</span>
           </div>
 
           <div className="w-full max-w-2xl mb-12 animate-slide-up text-left">

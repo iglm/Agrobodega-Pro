@@ -231,38 +231,19 @@ export const StatsView: React.FC<StatsViewProps> = ({
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
-       
-       {/* FILTRO DE FECHAS COMPACTO (WEB OPTIMIZED) */}
-       <div className="bg-white dark:bg-slate-900/80 backdrop-blur-md p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between sticky top-0 z-30 transition-all">
-            <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-indigo-600/10 text-indigo-500 rounded-xl">
-                    <Filter className="w-5 h-5" />
-                </div>
-                <div className="hidden sm:block">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Rango de Análisis</p>
-                    <p className="text-xs font-black text-slate-700 dark:text-white mt-1 uppercase">Periodo Actual</p>
+       {/* FILTRO DE FECHAS */}
+       <div className="bg-white dark:bg-slate-800 p-5 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between sticky top-[120px] z-30">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="p-2 bg-indigo-600 rounded-xl shrink-0"><Calendar className="w-4 h-4 text-white" /></div>
+                <div className="text-left">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Analítica de Negocio</p>
+                    <p className="text-xs font-black text-slate-800 dark:text-white mt-1">Hacienda Tabares Franco</p>
                 </div>
             </div>
-            
-            <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border dark:border-slate-800">
-                <div className="flex items-center gap-2 px-3">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <input 
-                        type="date" 
-                        value={startDate} 
-                        onChange={e => setStartDate(e.target.value)} 
-                        className="bg-transparent border-none text-[10px] font-black text-slate-700 dark:text-emerald-400 outline-none w-28 text-center" 
-                    />
-                </div>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-800" />
-                <div className="flex items-center gap-2 px-3">
-                    <input 
-                        type="date" 
-                        value={endDate} 
-                        onChange={e => setEndDate(e.target.value)} 
-                        className="bg-transparent border-none text-[10px] font-black text-slate-700 dark:text-emerald-400 outline-none w-28 text-center" 
-                    />
-                </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2 bg-slate-100 dark:bg-slate-900 p-2 rounded-2xl border dark:border-slate-700 w-full md:w-auto">
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black text-slate-600 dark:text-emerald-400 outline-none p-1 w-full sm:w-auto text-center" />
+                <ArrowRight className="w-3 h-3 text-slate-400 hidden sm:block" />
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black text-slate-600 dark:text-emerald-400 outline-none p-1 w-full sm:w-auto text-center" />
             </div>
        </div>
 

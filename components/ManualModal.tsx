@@ -27,7 +27,7 @@ export const ManualModal: React.FC<ManualModalProps> = ({ onClose }) => {
                 <h4 className="text-4xl font-black text-white mb-2 tracking-tight">Ecosistema <span className="text-emerald-400">Viva</span></h4>
                 <p className="text-emerald-200 font-bold text-sm uppercase tracking-widest">Guía Maestra de Gestión 360</p>
                 <div className="mt-6 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-[10px] text-white border border-white/20 uppercase font-black">
-                    <Award className="w-4 h-4 text-emerald-400" /> Lucas Mateo Tabares Franco • mateotabares7@gmail.com
+                    <Award className="w-4 h-4 text-emerald-400" /> Lucas Mateo Tabares Franco - Developer
                 </div>
               </div>
             </div>

@@ -1,118 +1,155 @@
 
-import Dexie, { Table } from 'dexie';
-import { AppState, InventoryItem, CostCenter, LaborLog, FinanceLog, PestLog, AuditLog } from '../types';
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { AppState, InventoryItem } from '../types';
+import { loadDataFromLocalStorage, generateId, STORAGE_KEY } from './inventoryService';
 
-export type SyncStatusField = 'synced' | 'pending_update' | 'pending_create';
+const DB_NAME = 'DatosFincaVivaDB';
+const DB_VERSION = 2; // Incremented for migration check
+const STORE_NAME = 'appState';
+const KEY = 'root';
+const MIGRATION_FLAG = 'MIGRATION_COMPLETED';
 
-export interface SyncFields {
-  serverId?: string;
-  lastUpdated: number;
-  syncStatus: SyncStatusField;
+interface FincaDB extends DBSchema {
+  [STORE_NAME]: {
+    key: string;
+    value: AppState;
+  };
 }
 
-export type SyncInventory = InventoryItem & SyncFields;
-export type SyncLot = CostCenter & SyncFields;
-export type SyncLabor = LaborLog & SyncFields;
-export type SyncFinance = FinanceLog & SyncFields;
-export type SyncSanitary = PestLog & SyncFields;
+let dbPromise: Promise<IDBPDatabase<FincaDB>> | null = null;
 
-export class AgroBodegaDB extends Dexie {
-  inventory!: Table<SyncInventory>;
-  lots!: Table<SyncLot>;
-  labor!: Table<SyncLabor>;
-  finance!: Table<SyncFinance>;
-  sanitary!: Table<SyncSanitary>;
-  auditLogs!: Table<AuditLog>; // Nueva tabla
+const getDB = () => {
+  if (!dbPromise) {
+    dbPromise = openDB<FincaDB>(DB_NAME, DB_VERSION, {
+      upgrade(db, oldVersion, newVersion, transaction) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
 
-  constructor() {
-    super('AgroBodegaProDB');
+        // Simple Migration Logic
+        if (oldVersion < 2) {
+           // Example: Add a new field if missing in existing data
+           // This runs when upgrading from version 1 to 2
+           const store = transaction.objectStore(STORE_NAME);
+           // Logic would go here to iterate and update if we stored items individually
+           // Since we store a monolithic 'root' object, migration usually happens on load
+           console.log("DB Upgraded to v2. Schema ready.");
+        }
+      },
+      blocked(currentVersion, blockedVersion, event) {
+          console.warn("DB blocked", currentVersion, blockedVersion);
+      },
+      blocking(currentVersion, blockedVersion, event) {
+          console.warn("DB blocking", currentVersion, blockedVersion);
+      },
+      terminated() {
+          console.error("DB terminated unexpectedly");
+          dbPromise = null;
+      },
+    });
+  }
+  return dbPromise;
+};
+
+// Data Migration Function to ensure new fields exist
+const migrateData = (data: AppState): AppState => {
+    // Ensure auditLogs exists
+    if (!data.auditLogs) data.auditLogs = [];
+    // Ensure clients exists
+    if (!data.clients) data.clients = [];
     
-    (this as any).version(2).stores({
-      inventory: 'id, serverId, syncStatus, lastUpdated',
-      lots: 'id, serverId, syncStatus, lastUpdated',
-      labor: 'id, serverId, syncStatus, lastUpdated',
-      finance: 'id, serverId, syncStatus, lastUpdated',
-      sanitary: 'id, serverId, syncStatus, lastUpdated',
-      auditLogs: 'id, action, timestamp, status, entity' // Esquema para auditoría
-    });
+    // Ensure all items have syncStatus
+    data.inventory = data.inventory.map(i => ({ ...i, syncStatus: i.syncStatus || 'pending_sync' }));
+    data.movements = data.movements.map(m => ({ ...m, syncStatus: m.syncStatus || 'pending_sync' }));
+    data.laborLogs = data.laborLogs.map(l => ({ ...l, syncStatus: l.syncStatus || 'pending_sync' }));
+    
+    return data;
+};
 
-    this.setupSyncHooks();
-  }
-
-  private setupSyncHooks() {
-    const tables = [this.inventory, this.lots, this.labor, this.finance, this.sanitary];
-    tables.forEach(table => {
-      table.hook('creating', (primKey, obj) => {
-        obj.lastUpdated = Date.now();
-        obj.syncStatus = obj.serverId ? 'synced' : 'pending_create';
-      });
-      table.hook('updating', (mods, primKey, obj) => {
-        return {
-          ...mods,
-          lastUpdated: Date.now(),
-          syncStatus: obj.syncStatus === 'pending_create' ? 'pending_create' : 'pending_update'
-        };
-      });
-    });
-  }
-}
-
-export const db = new AgroBodegaDB();
+const getCleanState = (): AppState => {
+    const id = generateId();
+    return {
+        // Fix: Added missing warehouseId property to initial warehouse
+        warehouses: [{ id, warehouseId: id, name: 'Finca Recuperada', created: new Date().toISOString(), ownerId: 'local_user' }],
+        activeWarehouseId: id,
+        inventory: [], movements: [], suppliers: [], costCenters: [], personnel: [], activities: [], 
+        laborLogs: [], harvests: [], machines: [], maintenanceLogs: [], rainLogs: [], financeLogs: [], 
+        soilAnalyses: [], ppeLogs: [], wasteLogs: [], agenda: [], phenologyLogs: [], pestLogs: [], 
+        plannedLabors: [], budgets: [], assets: [], bpaChecklist: {}, laborFactor: 1.0,
+        clients: [], salesContracts: [], sales: [],
+        auditLogs: []
+    };
+};
 
 export const dbService = {
-  addAuditLog: async (log: Omit<AuditLog, 'id'>): Promise<void> => {
-    const fullLog: AuditLog = {
-      ...log,
-      id: crypto.randomUUID()
-    };
-    await db.auditLogs.add(fullLog);
-    // Limpieza automática: Borrar logs técnicos de más de 90 días
-    const limit = new Date();
-    limit.setDate(limit.getDate() - 90);
-    await db.auditLogs.where('timestamp').below(limit.toISOString()).delete();
-  },
-
-  getAuditLogs: async (): Promise<AuditLog[]> => {
-    return db.auditLogs.orderBy('timestamp').reverse().toArray();
-  },
-
+  
   saveState: async (state: AppState): Promise<void> => {
     try {
-      await (db as any).transaction('rw', db.inventory, db.lots, db.labor, db.finance, db.sanitary, async () => {
-        await db.inventory.bulkPut(state.inventory as SyncInventory[]);
-        await db.lots.bulkPut(state.costCenters as SyncLot[]);
-        await db.labor.bulkPut(state.laborLogs as SyncLabor[]);
-        await db.finance.bulkPut(state.financeLogs as SyncFinance[]);
-        await db.sanitary.bulkPut(state.pestLogs as SyncSanitary[]);
-      });
+      const db = await getDB();
+      // Ensure data is valid before saving
+      const migratedState = migrateData(state);
+      await db.put(STORE_NAME, migratedState, KEY);
     } catch (error) {
-      console.error("Error Dexie:", error);
+      console.error("Error crítico guardando en IDB:", error);
+      try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (lsError) {
+          console.error("Fallo total de guardado", lsError);
+      }
     }
   },
 
-  loadState: async (): Promise<AppState | null> => {
+  loadState: async (): Promise<AppState> => {
+    const hasMigrated = localStorage.getItem(MIGRATION_FLAG) === 'true';
+    let db;
+
     try {
-      const [inventory, costCenters, laborLogs, financeLogs, pestLogs, auditLogs] = await Promise.all([
-        db.inventory.toArray(),
-        db.lots.toArray(),
-        db.labor.toArray(),
-        db.finance.toArray(),
-        db.sanitary.toArray(),
-        db.auditLogs.toArray()
-      ]);
+      db = await getDB();
+      let data = await db.get(STORE_NAME, KEY);
 
-      if (inventory.length === 0 && costCenters.length === 0) return null;
-
-      return {
-        inventory, costCenters, laborLogs, financeLogs, pestLogs, auditLogs,
-        warehouses: [], activeWarehouseId: inventory[0]?.warehouseId || '',
-        movements: [], suppliers: [], personnel: [], activities: [], harvests: [], 
-        machines: [], maintenanceLogs: [], rainLogs: [], soilAnalyses: [], ppeLogs: [], 
-        wasteLogs: [], agenda: [], phenologyLogs: [], plannedLabors: [], budgets: [], 
-        laborFactor: 1.0, clients: [], salesContracts: [], sales: []
-      } as unknown as AppState;
+      if (data) {
+        if (!hasMigrated) localStorage.setItem(MIGRATION_FLAG, 'true');
+        return migrateData(data);
+      }
     } catch (error) {
-      return null;
+      console.error("Error crítico leyendo IndexedDB:", error);
     }
+
+    if (hasMigrated) {
+        const rawLegacyData = localStorage.getItem(STORAGE_KEY);
+        if (rawLegacyData) {
+            try {
+                const recoveredState = migrateData(loadDataFromLocalStorage());
+                if (db) {
+                    await db.put(STORE_NAME, recoveredState, KEY);
+                }
+                return recoveredState;
+            } catch (recoveryError) {
+                console.error("Fallo al procesar datos de recuperación:", recoveryError);
+            }
+        }
+        return getCleanState();
+    }
+
+    try {
+        const legacyData = migrateData(loadDataFromLocalStorage());
+        if (db) {
+            await db.put(STORE_NAME, legacyData, KEY);
+            localStorage.setItem(MIGRATION_FLAG, 'true');
+        }
+        return legacyData;
+    } catch (migrationError) {
+        return loadDataFromLocalStorage();
+    }
+  },
+
+  clearDatabase: async (): Promise<void> => {
+      try {
+        const db = await getDB();
+        await db.clear(STORE_NAME);
+        localStorage.removeItem(MIGRATION_FLAG);
+      } catch (e) {
+          console.error("Error clearing DB", e);
+      }
   }
 };
