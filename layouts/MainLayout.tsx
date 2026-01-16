@@ -12,7 +12,8 @@ import {
     Settings2, Leaf, DollarSign, ClipboardList, Sparkles, 
     Search, Menu, X, Bell, LogOut, ChevronRight, Activity, 
     ShieldCheck, CloudRain, BrainCircuit, Wallet, TrendingUp, Users,
-    CloudOff, CloudFog, CloudLightning, BarChart3, Upload, History
+    CloudOff, CloudFog, CloudLightning, BarChart3, Upload, History,
+    Home, MoreHorizontal
 } from 'lucide-react';
 import { generateId, processInventoryMovement, formatCurrency } from '../services/inventoryService';
 import { 
@@ -33,7 +34,7 @@ import { WarehouseModal } from '../components/WarehouseModal';
 import { SettingsModal } from '../components/SettingsModal';
 import { DataModal } from '../components/DataModal';
 import { ImportModal } from '../components/ImportModal';
-import { TraceabilityDashboard } from '../components/TraceabilityDashboard'; // Nueva Importación
+import { TraceabilityDashboard } from '../components/TraceabilityDashboard';
 import { LaborView } from '../components/LaborView'; 
 import { HarvestView } from '../components/HarvestView'; 
 import { BiologicalAssetsView } from '../components/BiologicalAssetsView';
@@ -62,7 +63,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const { isSyncing: syncing, online: isOnline } = useSyncManager(data, setData);
 
   const [currentTab, setCurrentTab] = useState('overview');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile: Closed by default
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   // UI Modals
@@ -86,11 +87,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
         const alerts = checkFarmHealth(data);
         if (alerts.length > 0) {
             const criticalAlert = alerts.find(a => a.type === 'critical');
-            if (criticalAlert) {
-                onShowNotification(`ALERTA: ${criticalAlert.message}`, 'error');
-            } else if (alerts[0]) {
-                onShowNotification(`Aviso: ${alerts[0].message}`, 'error');
-            }
+            if (criticalAlert) onShowNotification(`ALERTA: ${criticalAlert.message}`, 'error');
         }
     }
   }, [data.activeWarehouseId]);
@@ -108,22 +105,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   const activeSuppliers = useMemo(() => data.suppliers.filter(s => s.warehouseId === activeId), [data.suppliers, activeId]);
 
   const sidebarLinks = [
-    { id: 'overview', label: 'Resumen General', icon: LayoutDashboard, color: 'text-emerald-500' },
+    { id: 'overview', label: 'Inicio', icon: LayoutDashboard, color: 'text-emerald-500' },
     { type: 'divider', label: 'Operaciones' },
-    { id: 'inventory', label: 'Bodega (Insumos)', icon: Package, color: 'text-blue-500' },
-    { id: 'harvest', label: 'Comercial (Ventas)', icon: DollarSign, color: 'text-emerald-500' },
-    { id: 'scheduler', label: 'Programación', icon: CalendarRange, color: 'text-violet-500' },
+    { id: 'inventory', label: 'Bodega', icon: Package, color: 'text-blue-500' },
+    { id: 'harvest', label: 'Comercial', icon: DollarSign, color: 'text-emerald-500' },
+    { id: 'scheduler', label: 'Programar', icon: CalendarRange, color: 'text-violet-500' },
     { type: 'divider', label: 'Mi Campo' },
-    { id: 'lots', label: 'Mapa de Lotes', icon: LayoutGrid, color: 'text-amber-500' },
-    { id: 'management', label: 'Bitácora de Campo', icon: ClipboardList, color: 'text-slate-400' },
-    { id: 'sanitary', label: 'Sanidad (Plagas)', icon: Bug, color: 'text-red-500' },
+    { id: 'lots', label: 'Lotes', icon: LayoutGrid, color: 'text-amber-500' },
+    { id: 'management', label: 'Bitácora', icon: ClipboardList, color: 'text-slate-400' },
+    { id: 'sanitary', label: 'Sanidad', icon: Bug, color: 'text-red-500' },
     { id: 'assets', label: 'Activos Bio', icon: Leaf, color: 'text-emerald-400' },
-    { type: 'divider', label: 'Gerencia Estratégica' },
-    { id: 'analytics', label: 'Análisis Financiero', icon: BarChart3, color: 'text-emerald-600' },
-    { id: 'traceability', label: 'Trazabilidad Hub', icon: History, color: 'text-indigo-400' }, // Nueva Opción
-    { id: 'labor', label: 'Nómina y Personal', icon: Pickaxe, color: 'text-orange-500' },
-    { id: 'budget', label: 'Presupuestos', icon: Calculator, color: 'text-indigo-500' },
-    { id: 'stats', label: 'Inteligencia BI', icon: Activity, color: 'text-rose-500' },
+    { type: 'divider', label: 'Estrategia' },
+    { id: 'analytics', label: 'Finanzas', icon: BarChart3, color: 'text-emerald-600' },
+    { id: 'traceability', label: 'Trazabilidad', icon: History, color: 'text-indigo-400' },
+    { id: 'labor', label: 'Personal', icon: Pickaxe, color: 'text-orange-500' },
+    { id: 'budget', label: 'Presupuesto', icon: Calculator, color: 'text-indigo-500' },
+    { id: 'stats', label: 'BI', icon: Activity, color: 'text-rose-500' },
   ];
 
   const handleAddCostCenterQuick = (name: string) => {
@@ -132,18 +129,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
   };
 
   return (
-    <div className={`min-h-screen flex bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans overflow-hidden`}>
-      <aside className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col z-[100] relative`}>
-        <div className="p-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
-            <div className="bg-emerald-600 p-2 rounded-xl shadow-lg shadow-emerald-900/20 shrink-0">
-                <Globe className="w-6 h-6 text-white" />
-            </div>
-            {sidebarOpen && (
-                <div className="animate-fade-in whitespace-nowrap overflow-hidden">
-                    <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">DatosFinca <span className="text-emerald-500">Pro</span></h1>
-                    <p className="text-[9px] text-slate-500 font-black uppercase">Enterprise Web Edition</p>
+    <div className={`min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans overflow-hidden`}>
+      
+      {/* SIDEBAR OVERLAY (MOBILE) */}
+      {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* SIDEBAR */}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-[120] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${sidebarOpen ? 'w-80' : 'lg:w-24'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col shadow-2xl lg:shadow-none`}>
+        <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+                <div className="bg-emerald-600 p-2.5 rounded-xl shadow-lg shadow-emerald-900/20 shrink-0">
+                    <Globe className="w-6 h-6 text-white" />
                 </div>
-            )}
+                {sidebarOpen && (
+                    <div className="animate-fade-in whitespace-nowrap">
+                        <h1 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">DatosFinca <span className="text-emerald-500">Pro</span></h1>
+                        <p className="text-[9px] text-slate-500 font-black uppercase">v3.0 Enterprise</p>
+                    </div>
+                )}
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-slate-400"><X /></button>
         </div>
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar py-4 px-3 space-y-1">
@@ -155,79 +162,70 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
                         <div key={idx} className="h-px bg-slate-200 dark:bg-slate-800 my-4 mx-2" />
                     );
                 }
-
                 const isActive = currentTab === link.id;
                 const LinkIcon = (link as any).icon;
-
                 return (
                     <button
                         key={link.id}
-                        onClick={() => setCurrentTab(link.id)}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${isActive ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        onClick={() => { setCurrentTab(link.id); if(window.innerWidth < 1024) setSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${isActive ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                     >
-                        <LinkIcon className={`w-5 h-5 shrink-0 transition-transform group-active:scale-90 ${isActive ? 'text-white' : link.color}`} />
+                        <LinkIcon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : link.color}`} />
                         {sidebarOpen && <span className="text-xs font-black uppercase tracking-tight">{link.label}</span>}
-                        {isActive && sidebarOpen && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                        {!sidebarOpen && !isActive && <span className="absolute left-full ml-4 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">{link.label}</span>}
                     </button>
                 );
             })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <button 
-                onClick={() => setShowImport(true)}
-                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-blue-500 hover:bg-blue-500/10 transition-all"
-                title="Importar Finca"
-            >
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2 mb-20 lg:mb-0">
+            <button onClick={() => setShowImport(true)} className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-blue-500 hover:bg-blue-500/10 transition-all">
                 <Upload className="w-5 h-5 shrink-0" />
                 {sidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Importar JSON</span>}
-            </button>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="w-full flex items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-emerald-500 transition-colors">
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
         </div>
       </aside>
 
+      {/* ÁREA PRINCIPAL */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between z-50">
-            <div className="flex items-center gap-6 flex-1">
-                <div className="max-w-md w-full relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Búsqueda Inteligente..." 
-                        className="w-full bg-slate-100 dark:bg-slate-950 border border-transparent focus:border-emerald-500/50 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold text-slate-700 dark:text-white outline-none transition-all"
-                    />
+        
+        <header className="h-16 lg:h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 flex items-center justify-between z-50">
+            <div className="flex items-center gap-3 lg:gap-6 flex-1">
+                <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300">
+                    <Menu className="w-5 h-5" />
+                </button>
+                <div className="max-w-md w-full relative group hidden md:block">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="text" placeholder="Búsqueda Inteligente..." className="w-full bg-slate-100 dark:bg-slate-950 border border-transparent focus:border-emerald-500/50 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold text-slate-700 dark:text-white outline-none" />
                 </div>
-                <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden lg:block" />
-                <button onClick={() => setShowWarehouses(true)} className="flex items-center gap-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all group">
-                    <div className="p-2 bg-indigo-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                <button onClick={() => setShowWarehouses(true)} className="flex items-center gap-2 lg:gap-3 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">
+                    <div className="p-2 bg-indigo-600 rounded-xl shadow-lg">
                         <Globe className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-left">
-                        <h2 className="text-xs font-black text-slate-900 dark:text-white uppercase leading-none">{currentW?.name || 'Seleccionar Finca'}</h2>
-                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Activa</span>
+                    <div className="text-left hidden xs:block">
+                        <h2 className="text-[11px] lg:text-xs font-black text-slate-900 dark:text-white uppercase leading-none truncate max-w-[100px] lg:max-w-none">{currentW?.name || 'Finca'}</h2>
+                        <span className="text-[8px] lg:text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Activa</span>
                     </div>
                     <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
             </div>
 
-            <div className="flex items-center gap-3">
-                <button onClick={toggleTheme} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-500 hover:text-amber-500 transition-all active:scale-95 border border-slate-200 dark:border-slate-700">
-                    {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <div className="flex items-center gap-2 lg:gap-3">
+                <button onClick={toggleTheme} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 border border-slate-200 dark:border-slate-700">
+                    {theme === 'dark' ? <Sun className="w-4 h-4 lg:w-5 lg:h-5" /> : <Moon className="w-4 h-4 lg:w-5 lg:h-5" />}
                 </button>
-                <button onClick={() => setAiPanelOpen(true)} className="flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-indigo-900/20 active:scale-95 transition-all group">
-                    <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                    <span className="text-xs font-black uppercase tracking-widest">Consultor IA</span>
+                <button onClick={() => setAiPanelOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-3 lg:px-5 py-2.5 rounded-xl lg:rounded-2xl shadow-xl active:scale-95 transition-all">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-[10px] lg:text-xs font-black uppercase tracking-widest hidden sm:block">IA</span>
                 </button>
             </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50 dark:bg-slate-950/50">
+        <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8 bg-slate-50 dark:bg-slate-950/50 pb-32 lg:pb-8">
             <div className="max-w-7xl mx-auto">
                 {currentTab === 'overview' && (
-                    <div className="animate-fade-in space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="animate-fade-in space-y-6 lg:space-y-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                             <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-4 opacity-5"><DollarSign className="w-20 h-20" /></div>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
@@ -252,6 +250,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
                             onViewHistory={(item) => setHistoryItem(item)}
                             onViewGlobalHistory={() => setShowGlobalHistory(true)}
                             onNavigate={(id) => setCurrentTab(id)}
+                            onAddItem={() => setShowAddForm(true)}
                             isAdmin={true}
                         />
                     </div>
@@ -259,7 +258,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
 
                 {currentTab === 'traceability' && <TraceabilityDashboard />}
                 {currentTab === 'analytics' && <AnalyticsView />}
-                {currentTab === 'inventory' && <Dashboard data={data} inventory={activeInventory} costCenters={activeCostCenters} movements={activeMovements} onAddMovement={(i, t) => setMovementModal({item: i, type: t})} onDelete={(id) => { const item = data.inventory.find(i => i.id === id); if(item) setDeleteItem(item); }} onViewHistory={(item) => setHistoryItem(item)} onViewGlobalHistory={() => setShowGlobalHistory(true)} isAdmin={true} />}
+                {currentTab === 'inventory' && <Dashboard data={data} inventory={activeInventory} costCenters={activeCostCenters} movements={activeMovements} onAddMovement={(i, t) => setMovementModal({item: i, type: t})} onDelete={(id) => { const item = data.inventory.find(i => i.id === id); if(item) setDeleteItem(item); }} onViewHistory={(item) => setHistoryItem(item)} onViewGlobalHistory={() => setShowGlobalHistory(true)} onAddItem={() => setShowAddForm(true)} isAdmin={true} />}
                 {currentTab === 'lots' && <LotManagementView costCenters={activeCostCenters} laborLogs={activeLaborLogs} movements={activeMovements} harvests={activeHarvests} plannedLabors={data.plannedLabors} onUpdateLot={actions.updateCostCenter} onAddPlannedLabor={actions.addPlannedLabor} activities={activeActivities} onAddCostCenter={(n,b,a,s,pc,ct,ac,age,density, assocAge) => setData(prev=>({...prev, costCenters:[...prev.costCenters,{id:generateId(),warehouseId:activeId,name:n,budget:b,area:a || 0,stage:s,plantCount:pc, cropType:ct || 'Café',associatedCrop:ac, cropAgeMonths: age, associatedCropDensity: density, associatedCropAge: assocAge}]}))} onDeleteCostCenter={actions.deleteCostCenter} />}
                 {currentTab === 'labor' && <LaborView laborLogs={activeLaborLogs} personnel={activePersonnel} costCenters={activeCostCenters} activities={activeActivities} onAddLabor={() => setShowLaborForm(true)} onDeleteLabor={(id) => setData(prev=>({...prev, laborLogs: prev.laborLogs.filter(l=>l.id!==id)}))} isAdmin={true} onOpenPayroll={()=>setShowPayroll(true)} />}
                 {currentTab === 'scheduler' && <LaborSchedulerView plannedLabors={data.plannedLabors} costCenters={activeCostCenters} activities={activeActivities} personnel={activePersonnel} onAddPlannedLabor={actions.addPlannedLabor} onDeletePlannedLabor={(id) => setData(prev=>({...prev, plannedLabors: prev.plannedLabors.filter(l=>l.id!==id)}))} onToggleComplete={(id)=>setData(prev=>({...prev, plannedLabors: prev.plannedLabors.map(l=>l.id===id?{...l, completed:!l.completed}:l)}))} onAddActivity={(n)=>actions.onAddActivity(n)} onAddCostCenter={handleAddCostCenterQuick} onAddPersonnel={(n)=>actions.onAddPersonnel({name: n, role:'Trabajador'})} />}
@@ -272,15 +271,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
             </div>
         </main>
 
-        <footer className="h-12 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest shrink-0">
-            <div className="flex items-center gap-6">
-                <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Sistema Seguro</span>
-                <span className="flex items-center gap-2 font-bold"><ShieldCheck className="w-3 h-3 text-indigo-400" /> Copyright © 2025 Lucas Mateo Tabares Franco</span>
-            </div>
-        </footer>
+        {/* BOTTOM NAV (MOBILE) */}
+        <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 flex justify-around items-center px-4 py-3 z-[100] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+            <button onClick={() => setCurrentTab('overview')} className={`flex flex-col items-center gap-1 ${currentTab === 'overview' ? 'text-emerald-500' : 'text-slate-400'}`}>
+                <Home className="w-6 h-6" />
+                <span className="text-[9px] font-black uppercase">Inicio</span>
+            </button>
+            <button onClick={() => setCurrentTab('inventory')} className={`flex flex-col items-center gap-1 ${currentTab === 'inventory' ? 'text-blue-500' : 'text-slate-400'}`}>
+                <Package className="w-6 h-6" />
+                <span className="text-[9px] font-black uppercase">Bodega</span>
+            </button>
+            <button onClick={() => setCurrentTab('labor')} className={`flex flex-col items-center gap-1 ${currentTab === 'labor' ? 'text-orange-500' : 'text-slate-400'}`}>
+                <Pickaxe className="w-6 h-6" />
+                <span className="text-[9px] font-black uppercase">Nómina</span>
+            </button>
+            <button onClick={() => setSidebarOpen(true)} className="flex flex-col items-center gap-1 text-slate-400">
+                <MoreHorizontal className="w-6 h-6" />
+                <span className="text-[9px] font-black uppercase">Menú</span>
+            </button>
+        </nav>
 
         {aiPanelOpen && (
-            <div className="fixed inset-0 z-[110] flex justify-end animate-fade-in">
+            <div className="fixed inset-0 z-[130] flex justify-end animate-fade-in">
                 <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setAiPanelOpen(false)} />
                 <div className="w-full max-w-lg bg-slate-900 h-full relative animate-slide-left shadow-2xl flex flex-col border-l border-slate-700">
                     <AIAssistant data={data} onClose={() => setAiPanelOpen(false)} />
@@ -290,7 +302,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onShowNotification }) =>
       </div>
 
       {/* Capa de Modales */}
-      <div className="z-[150] relative">
+      <div className="z-[200] relative">
           {showManual && <ManualModal onClose={() => setShowManual(false)} />}
           {showData && data && <DataModal fullState={data} onRestoreData={(d) => { actions.importFullState(d); setShowData(false); }} onClose={() => setShowData(false)} onShowNotification={onShowNotification} />}
           {showImport && <ImportModal onClose={() => setShowImport(false)} />}
